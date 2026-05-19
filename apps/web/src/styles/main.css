@@ -80,7 +80,7 @@ svg{display:block;flex-shrink:0}
   background:var(--sidebar-bg);
   padding:30px 20px;
   display:flex;flex-direction:column;
-  align-self:start;
+  position:sticky;top:0;align-self:start;
   height:100vh;height:100dvh;
   max-height:100dvh;
   overflow-x:hidden;overflow-y:auto;
@@ -89,12 +89,6 @@ svg{display:block;flex-shrink:0}
   -webkit-overflow-scrolling:touch;
   scrollbar-width:thin;
   scrollbar-color:rgba(255,255,255,.18) transparent;
-}
-@media(min-width:861px){
-  .sidebar{
-    position:fixed;top:0;left:0;
-    width:var(--sidebar);
-  }
 }
 .sidebar::-webkit-scrollbar{width:4px}
 .sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:4px}
@@ -199,7 +193,10 @@ svg{display:block;flex-shrink:0}
 /* ════════════════════════════════════════
    MAIN & PAGES
 ════════════════════════════════════════ */
-.main{padding:36px 44px;max-width:1140px;width:100%}
+.main{
+  padding:36px 44px;max-width:1140px;width:100%;
+  grid-column:2;min-width:0;
+}
 .page{display:none;animation:fadeUp .38s var(--ease) both}.page.active{display:block}
 
 /* ════════════════════════════════════════
@@ -567,6 +564,7 @@ img,svg{max-width:100%}
   .topbar{display:flex}.bottom-nav{display:flex}.fab{display:flex}
   .tb-logout{display:flex}
   .main{
+    grid-column:1;
     padding:calc(var(--topbar) + 20px) 16px calc(var(--bnav) + 20px);
     max-width:100%;box-sizing:border-box;
   }
