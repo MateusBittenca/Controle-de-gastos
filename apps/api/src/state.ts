@@ -24,7 +24,15 @@ export async function fetchAppState(userId: string): Promise<AppState> {
        WHERE u.id = $1`,
       [userId],
     ),
-    query(
+    query<{
+      id: string;
+      type: string;
+      category_id: string;
+      description: string;
+      amount: string;
+      transaction_date: Date | string;
+      is_recurring?: boolean;
+    }>(
       `SELECT id, type, category_id, description, amount, transaction_date, is_recurring
        FROM transactions WHERE user_id = $1 ORDER BY transaction_date DESC`,
       [userId],
@@ -33,11 +41,25 @@ export async function fetchAppState(userId: string): Promise<AppState> {
       `SELECT category_id, limit_amount FROM budgets WHERE user_id = $1`,
       [userId],
     ),
-    query(
+    query<{
+      id: string;
+      name: string;
+      icon: string;
+      target_amount: string;
+      current_amount: string;
+    }>(
       `SELECT id, name, icon, target_amount, current_amount FROM goals WHERE user_id = $1`,
       [userId],
     ),
-    query(
+    query<{
+      id: string;
+      type: string;
+      category_id: string;
+      description: string;
+      amount: string;
+      frequency: string;
+      next_date: Date | string;
+    }>(
       `SELECT id, type, category_id, description, amount, frequency, next_date
        FROM recurring WHERE user_id = $1`,
       [userId],

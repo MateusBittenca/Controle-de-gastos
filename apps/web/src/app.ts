@@ -520,6 +520,13 @@ function checkOnboarding(){
     hideOnboarding();
     return;
   }
+  obSlide = 0;
+  document.querySelectorAll('.ob-slide').forEach((el, i) => {
+    (el as HTMLElement).style.display = i === 0 ? 'block' : 'none';
+  });
+  document.querySelectorAll('.ob-dot').forEach((d, i) => d.classList.toggle('active', i === 0));
+  const nextBtn = document.getElementById('ob-next');
+  if (nextBtn) nextBtn.textContent = 'Próximo';
   ob.classList.remove('hidden');
   ob.style.display='flex';
 }

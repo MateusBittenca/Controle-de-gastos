@@ -73,7 +73,9 @@ async function loadAppState() {
   return generated;
 }
 
-window.finReload = loadAppState;
+window.finReload = async () => {
+  await loadAppState();
+};
 
 function showLanding() {
   document.getElementById('landing-screen')?.classList.remove('hidden');
@@ -324,6 +326,7 @@ function setupAuthForm() {
 }
 
 async function init() {
+  exposeApp();
   app.hideOnboarding();
   const openAuth = setupAuthForm();
   if (openAuth) setupLandingNav(openAuth);

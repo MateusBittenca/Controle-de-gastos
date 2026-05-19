@@ -1,6 +1,5 @@
 export type TxnType = 'income' | 'expense';
 export type RecurFreq = 'weekly' | 'monthly' | 'yearly';
-export type RecurFreq = 'weekly' | 'monthly' | 'yearly';
 export type Currency = 'BRL' | 'USD' | 'EUR' | 'GBP';
 
 export interface FrontTransaction {
