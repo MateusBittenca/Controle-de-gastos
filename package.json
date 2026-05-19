@@ -1,0 +1,11 @@
+{
+  "name": "financas",
+  "private": true,
+  "workspaces": ["apps/api", "apps/web"],
+  "scripts": {
+    "dev": "npm run dev -w @financas/api & npm run dev -w @financas/web",
+    "dev:api": "npm run dev -w @financas/api",
+    "dev:web": "npm run dev -w @financas/web",
+    "build": "npm run build -w @financas/api && npm run build -w @financas/web"
+  }
+}

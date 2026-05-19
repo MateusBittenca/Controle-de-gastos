@@ -1,0 +1,45 @@
+# ── Segredos e ambiente local (NUNCA commitar) ──
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ── Dependências ──
+node_modules/
+
+# ── Build e cache TypeScript / bundlers ──
+dist/
+build/
+*.tsbuildinfo
+.vite/
+.cache/
+
+# ── Logs ──
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ── Testes e cobertura ──
+coverage/
+.nyc_output/
+
+# ── SO ──
+.DS_Store
+Thumbs.db
+
+# ── IDE / editor ──
+.idea/
+*.swp
+*.swo
+*~
+
+# Opcional: descomente se não quiser versionar configs pessoais do VS Code/Cursor
+# .vscode/
+
+# ── Temporários / artefatos locais ──
+*.local
+tmp/
+temp/
