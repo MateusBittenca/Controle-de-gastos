@@ -486,13 +486,42 @@ function renderAll(){
 ════════════════════════════════════ */
 let obSlide=0;
 const OB_TOTAL=4;
+let currentUserId: string | null = null;
+
+function onboardingKey() {
+  return currentUserId ? `fin_onboarded_${currentUserId}` : 'fin_onboarded';
+}
+
+function setCurrentUserId(id: string) {
+  currentUserId = id;
+  const legacy = localStorage.getItem('fin_onboarded');
+  const key = onboardingKey();
+  if (legacy && !localStorage.getItem(key)) {
+    localStorage.setItem(key, legacy);
+  }
+}
+
+function hideOnboarding() {
+  const ob = document.getElementById('onboarding');
+  if (!ob) return;
+  ob.style.display = 'none';
+  ob.classList.add('hidden');
+}
 
 function checkOnboarding(){
-  if(localStorage.getItem('fin_onboarded')){
-    document.getElementById('onboarding').style.display='none';
+  const ob = document.getElementById('onboarding');
+  if (!ob) return;
+  const appRoot = document.getElementById('app-root');
+  if (appRoot?.classList.contains('hidden')) {
+    hideOnboarding();
     return;
   }
-  document.getElementById('onboarding').style.display='flex';
+  if (localStorage.getItem(onboardingKey())){
+    hideOnboarding();
+    return;
+  }
+  ob.classList.remove('hidden');
+  ob.style.display='flex';
 }
 
 function nextSlide(){
@@ -508,7 +537,7 @@ function nextSlide(){
 }
 
 function finishOnboarding(){
-  localStorage.setItem('fin_onboarded','1');
+  localStorage.setItem(onboardingKey(),'1');
   const ob=document.getElementById('onboarding');
   ob.classList.add('hidden');
   setTimeout(()=>ob.style.display='none',400);
@@ -762,7 +791,8 @@ async function runAIAnalysis(){
 }
 
 export {
-  applyTheme, populateCatSel, renderAll, checkOnboarding, goPage,
+  applyTheme, populateCatSel, renderAll, checkOnboarding, hideOnboarding,
+  setCurrentUserId, goPage,
   openTxnModal, openBudModal, openGoalModal, openRecurModal, openPinModal,
   openModal, closeModal, setType, setRecurType,
   saveTxn, saveBudget, saveGoal, saveRecur, saveProfile, savePin,

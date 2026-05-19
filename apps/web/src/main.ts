@@ -1,5 +1,6 @@
 import './styles/main.css';
 import './styles/auth.css';
+import './styles/landing.css';
 import { api } from './api/client.js';
 import { setDB } from './state.js';
 import * as app from './app.js';
@@ -74,13 +75,24 @@ async function loadAppState() {
 
 window.finReload = loadAppState;
 
+function showLanding() {
+  document.getElementById('landing-screen')?.classList.remove('hidden');
+  document.getElementById('auth-screen')?.classList.add('hidden');
+  document.getElementById('app-root')?.classList.add('hidden');
+  document.getElementById('loading-screen')?.classList.add('hidden');
+  app.hideOnboarding();
+}
+
 function showAuth() {
+  document.getElementById('landing-screen')?.classList.add('hidden');
   document.getElementById('auth-screen')?.classList.remove('hidden');
   document.getElementById('app-root')?.classList.add('hidden');
   document.getElementById('loading-screen')?.classList.add('hidden');
+  app.hideOnboarding();
 }
 
 function showApp() {
+  document.getElementById('landing-screen')?.classList.add('hidden');
   document.getElementById('auth-screen')?.classList.add('hidden');
   document.getElementById('app-root')?.classList.remove('hidden');
   document.getElementById('loading-screen')?.classList.add('hidden');
@@ -88,8 +100,10 @@ function showApp() {
 
 function showLoading() {
   document.getElementById('loading-screen')?.classList.remove('hidden');
+  document.getElementById('landing-screen')?.classList.add('hidden');
   document.getElementById('auth-screen')?.classList.add('hidden');
   document.getElementById('app-root')?.classList.add('hidden');
+  app.hideOnboarding();
 }
 
 function showError(msg: string) {
@@ -113,18 +127,30 @@ function clearResetFromUrl() {
   window.history.replaceState({}, '', next);
 }
 
-async function bootstrapApp() {
+async function bootstrapApp(userId: string) {
+  app.setCurrentUserId(userId);
   exposeApp();
   app.populateCatSel('recur-cat', 'expense');
   app.renderAll();
-  setTimeout(app.checkOnboarding, 120);
   showApp();
+  setTimeout(app.checkOnboarding, 120);
 }
 
 window.finLogout = async () => {
   await api.logout();
-  showAuth();
+  showLanding();
 };
+
+function setupLandingNav(openAuth: (tab: 'login' | 'register') => void) {
+  const goRegister = () => openAuth('register');
+  const goLogin = () => openAuth('login');
+
+  document.getElementById('landing-nav-login')?.addEventListener('click', goLogin);
+  document.getElementById('landing-cta-login')?.addEventListener('click', goLogin);
+  document.getElementById('landing-cta-start')?.addEventListener('click', goRegister);
+  document.getElementById('landing-cta-start-hero')?.addEventListener('click', goRegister);
+  document.getElementById('landing-cta-bottom')?.addEventListener('click', goRegister);
+}
 
 function setupAuthForm() {
   const loginForm = document.getElementById('login-form') as HTMLFormElement;
@@ -206,9 +232,9 @@ function setupAuthForm() {
       .value;
     try {
       showLoading();
-      await api.login(email, password);
+      const { user } = await api.login(email, password);
       await loadAppState();
-      await bootstrapApp();
+      await bootstrapApp(user.id);
     } catch (err) {
       showAuth();
       setView('login');
@@ -224,9 +250,9 @@ function setupAuthForm() {
       .value;
     try {
       showLoading();
-      await api.register(name, email, password);
+      const { user } = await api.register(name, email, password);
       await loadAppState();
-      await bootstrapApp();
+      await bootstrapApp(user.id);
     } catch (err) {
       showAuth();
       setView('register');
@@ -290,10 +316,18 @@ function setupAuthForm() {
   if (resetToken) {
     setView('reset');
   }
+
+  return (tab: 'login' | 'register') => {
+    showAuth();
+    setTab(tab);
+  };
 }
 
 async function init() {
-  setupAuthForm();
+  app.hideOnboarding();
+  const openAuth = setupAuthForm();
+  if (openAuth) setupLandingNav(openAuth);
+
   const resetToken = getResetTokenFromUrl();
   if (resetToken) {
     showAuth();
@@ -302,15 +336,15 @@ async function init() {
 
   showLoading();
   try {
-    await api.me();
+    const { user } = await api.me();
     await loadAppState();
-    await bootstrapApp();
+    await bootstrapApp(user.id);
   } catch {
-    showAuth();
+    showLanding();
   }
 }
 
 init().catch(() => {
   showError('Não foi possível conectar ao servidor. Verifique se a API está rodando.');
-  showAuth();
+  showLanding();
 });

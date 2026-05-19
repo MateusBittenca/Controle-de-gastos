@@ -759,7 +759,7 @@ img,svg{max-width:100%}
 
 
 /* ══ ONBOARDING ══ */
-#onboarding{transition:opacity .4s ease,transform .4s ease}
+#onboarding{display:none;transition:opacity .4s ease,transform .4s ease}
 #onboarding.hidden{opacity:0;pointer-events:none;transform:scale(.97)}
 .ob-dot{width:6px;height:6px;border-radius:50%;background:var(--faint);transition:all .3s}
 .ob-dot.active{width:20px;border-radius:100px;background:var(--ink)}

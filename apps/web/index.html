@@ -16,6 +16,107 @@
   </div>
 </div>
 
+<div id="landing-screen" class="hidden">
+  <header class="landing-nav">
+    <div class="landing-brand">
+      <div class="brand-mark" style="width:36px;height:36px;font-size:15px;border-color:var(--border);color:var(--ink)">F</div>
+      <span>Finanças</span>
+    </div>
+    <div class="landing-nav-actions">
+      <button type="button" class="btn btn-ghost btn-sm" id="landing-nav-login">Entrar</button>
+      <button type="button" class="btn btn-primary btn-sm" id="landing-cta-start">Começar grátis</button>
+    </div>
+  </header>
+
+  <section class="landing-hero">
+    <div>
+      <div class="landing-eyebrow"><span class="landing-eyebrow-dot"></span> Controle financeiro inteligente</div>
+      <h1 class="landing-title">Suas finanças, com <em>inteligência</em></h1>
+      <p class="landing-lead">Organize receitas e despesas, acompanhe metas, receba insights da IA Fi e veja seu score financeiro evoluir em tempo real.</p>
+      <div class="landing-cta-row">
+        <button type="button" class="btn btn-primary" id="landing-cta-start-hero">Começar grátis</button>
+        <button type="button" class="btn btn-ghost" id="landing-cta-login">Já tenho conta</button>
+      </div>
+      <p class="landing-trust">Sem cartão de crédito · Dados seguros · Pronto em minutos</p>
+    </div>
+    <div class="landing-preview">
+      <div class="landing-preview-hd">
+        <span class="landing-preview-title">Visão geral — Abril</span>
+        <span class="landing-score-pill">Score 742</span>
+      </div>
+      <div class="landing-kpi-row">
+        <div class="landing-kpi">
+          <div class="landing-kpi-lbl">Saldo</div>
+          <div class="landing-kpi-val">R$ 4.280</div>
+        </div>
+        <div class="landing-kpi">
+          <div class="landing-kpi-lbl">Receitas</div>
+          <div class="landing-kpi-val" style="color:var(--green)">R$ 8.200</div>
+        </div>
+        <div class="landing-kpi">
+          <div class="landing-kpi-lbl">Despesas</div>
+          <div class="landing-kpi-val" style="color:var(--red)">R$ 3.920</div>
+        </div>
+      </div>
+      <div class="landing-chart" aria-hidden="true">
+        <div class="landing-bar inc"></div>
+        <div class="landing-bar exp"></div>
+        <div class="landing-bar inc"></div>
+        <div class="landing-bar exp"></div>
+        <div class="landing-bar inc"></div>
+        <div class="landing-bar inc"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="landing-features">
+    <h2 class="landing-section-title">Tudo que você precisa</h2>
+    <p class="landing-section-sub">Do registro diário à análise inteligente — em um só lugar.</p>
+    <div class="landing-feature-grid">
+      <article class="landing-feature">
+        <div class="landing-feature-ico" style="background:var(--green-bg)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="var(--green)" stroke-width="1.4" stroke-linecap="round"><path d="M3 16l4-6 3 3 3-5 4 4"/></svg>
+        </div>
+        <h3>Score Financeiro</h3>
+        <p>Pontuação de 0 a 1000 baseada nos seus hábitos, atualizada automaticamente.</p>
+      </article>
+      <article class="landing-feature">
+        <div class="landing-feature-ico" style="background:var(--blue-bg)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="var(--blue)" stroke-width="1.4" stroke-linecap="round"><path d="M10 3c-3.3 0-6 2.2-6 5 0 1.6.8 3 2 4l-1 3 3-1.5c.6.2 1.3.3 2 .3 3.3 0 6-2.2 6-5s-2.7-5-6-5z"/></svg>
+        </div>
+        <h3>IA Financeira</h3>
+        <p>Converse com o Fi para entender gastos e receber sugestões práticas.</p>
+      </article>
+      <article class="landing-feature">
+        <div class="landing-feature-ico" style="background:var(--amber-bg)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="var(--amber)" stroke-width="1.4" stroke-linecap="round"><path d="M10 2l6 2.5v5c0 4-2.5 7-6 8.5C4.5 16.5 2 13.5 2 9.5v-5L10 2z"/></svg>
+        </div>
+        <h3>Metas & Orçamento</h3>
+        <p>Defina limites por categoria e acompanhe o progresso das suas metas.</p>
+      </article>
+      <article class="landing-feature">
+        <div class="landing-feature-ico" style="background:var(--surface)">
+          <svg viewBox="0 0 20 20" fill="none" stroke="var(--ink)" stroke-width="1.4" stroke-linecap="round"><path d="M4 10a6 6 0 0112 0"/><path d="M16 10l-2-2M16 10l-2 2"/></svg>
+        </div>
+        <h3>Recorrentes</h3>
+        <p>Contas fixas lançadas automaticamente — menos trabalho manual.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="landing-bottom-cta">
+    <div class="landing-bottom-card">
+      <div>
+        <h2>Pronto para assumir o controle?</h2>
+        <p>Crie sua conta em segundos e veja sua vida financeira com clareza.</p>
+      </div>
+      <button type="button" class="btn btn-primary" id="landing-cta-bottom">Criar conta grátis</button>
+    </div>
+  </section>
+
+  <footer class="landing-footer">© 2026 Finanças — feito para organizar seu dinheiro com calma.</footer>
+</div>
+
 <div id="auth-screen" class="hidden">
   <div class="auth-card">
     <div class="auth-brand">
@@ -649,6 +750,59 @@
   </div>
 </div>
 
+<!-- ══ ONBOARDING ══ -->
+<div id="onboarding" class="hidden" style="position:fixed;inset:0;z-index:900;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:var(--bg)">
+  <div id="ob-slides" style="width:100%;max-width:380px;position:relative;overflow:hidden">
+
+    <!-- Slide 1 -->
+    <div class="ob-slide active" id="ob-0">
+      <div style="width:80px;height:80px;background:var(--sidebar-bg);border-radius:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 28px;box-shadow:var(--shadow-lg)">
+        <span style="color:#fff;font-family:'DM Serif Display',serif;font-size:32px">F</span>
+      </div>
+      <h2 style="font-family:'DM Serif Display',serif;font-size:28px;text-align:center;margin-bottom:14px;color:var(--ink)">Bem-vindo ao Finanças</h2>
+      <p style="font-size:14px;color:var(--muted);text-align:center;line-height:1.7">O app mais inteligente para controlar seu dinheiro, com IA financeira e score em tempo real.</p>
+    </div>
+
+    <!-- Slide 2 -->
+    <div class="ob-slide" id="ob-1" style="display:none">
+      <div style="width:80px;height:80px;background:var(--green-bg);border-radius:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 28px">
+        <svg width="36" height="36" viewBox="0 0 20 20" fill="none" stroke="var(--green)" stroke-width="1.4" stroke-linecap="round"><path d="M3 16l4-6 3 3 3-5 4 4"/><path d="M14 8h3v3"/></svg>
+      </div>
+      <h2 style="font-family:'DM Serif Display',serif;font-size:28px;text-align:center;margin-bottom:14px;color:var(--ink)">Score Financeiro</h2>
+      <p style="font-size:14px;color:var(--muted);text-align:center;line-height:1.7">Veja sua pontuação de 0 a 1000 calculada em tempo real com base nos seus hábitos financeiros.</p>
+    </div>
+
+    <!-- Slide 3 -->
+    <div class="ob-slide" id="ob-2" style="display:none">
+      <div style="width:80px;height:80px;background:var(--blue-bg);border-radius:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 28px">
+        <svg width="36" height="36" viewBox="0 0 20 20" fill="none" stroke="var(--blue)" stroke-width="1.4" stroke-linecap="round"><path d="M10 3c-3.3 0-6 2.2-6 5 0 1.6.8 3 2 4l-1 3 3-1.5c.6.2 1.3.3 2 .3 3.3 0 6-2.2 6-5s-2.7-5-6-5z"/><path d="M7 9h.5M10 9h.5M13 9h.5"/></svg>
+      </div>
+      <h2 style="font-family:'DM Serif Display',serif;font-size:28px;text-align:center;margin-bottom:14px;color:var(--ink)">IA Financeira</h2>
+      <p style="font-size:14px;color:var(--muted);text-align:center;line-height:1.7">Converse com sua IA pessoal. Ela analisa seus gastos e dá sugestões reais para economizar mais.</p>
+    </div>
+
+    <!-- Slide 4 -->
+    <div class="ob-slide" id="ob-3" style="display:none">
+      <div style="width:80px;height:80px;background:var(--amber-bg);border-radius:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 28px">
+        <svg width="36" height="36" viewBox="0 0 20 20" fill="none" stroke="var(--amber)" stroke-width="1.4" stroke-linecap="round"><path d="M10 2l6 2.5v5c0 4-2.5 7-6 8.5C4.5 16.5 2 13.5 2 9.5v-5L10 2z"/></svg>
+      </div>
+      <h2 style="font-family:'DM Serif Display',serif;font-size:28px;text-align:center;margin-bottom:14px;color:var(--ink)">Metas & Orçamento</h2>
+      <p style="font-size:14px;color:var(--muted);text-align:center;line-height:1.7">Defina metas, controle limites por categoria e acompanhe recorrências automáticas.</p>
+    </div>
+  </div>
+
+  <!-- Dots -->
+  <div style="display:flex;gap:8px;margin-top:36px" id="ob-dots">
+    <div class="ob-dot active"></div><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot"></div>
+  </div>
+
+  <!-- CTA -->
+  <div style="display:flex;gap:10px;margin-top:28px;width:100%;max-width:380px">
+    <button id="ob-skip" onclick="finishOnboarding()" class="btn btn-ghost" style="flex:0 0 auto">Pular</button>
+    <button id="ob-next" onclick="nextSlide()" class="btn btn-primary" style="flex:1;justify-content:center">Próximo</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1164,58 +1318,7 @@ function renderAll(){
 }
 </script>
 </div>
-<!-- ══ ONBOARDING ══ -->
-<div id="onboarding" style="position:fixed;inset:0;z-index:900;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:var(--bg)">
-  <div id="ob-slides" style="width:100%;max-width:380px;position:relative;overflow:hidden">
 
-    <!-- Slide 1 -->
-    <div class="ob-slide active" id="ob-0">
-      <div style="width:80px;height:80px;background:var(--sidebar-bg);border-radius:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 28px;box-shadow:var(--shadow-lg)">
-        <span style="color:#fff;font-family:'DM Serif Display',serif;font-size:32px">F</span>
-      </div>
-      <h2 style="font-family:'DM Serif Display',serif;font-size:28px;text-align:center;margin-bottom:14px;color:var(--ink)">Bem-vindo ao Finanças</h2>
-      <p style="font-size:14px;color:var(--muted);text-align:center;line-height:1.7">O app mais inteligente para controlar seu dinheiro, com IA financeira e score em tempo real.</p>
-    </div>
-
-    <!-- Slide 2 -->
-    <div class="ob-slide" id="ob-1" style="display:none">
-      <div style="width:80px;height:80px;background:var(--green-bg);border-radius:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 28px">
-        <svg width="36" height="36" viewBox="0 0 20 20" fill="none" stroke="var(--green)" stroke-width="1.4" stroke-linecap="round"><path d="M3 16l4-6 3 3 3-5 4 4"/><path d="M14 8h3v3"/></svg>
-      </div>
-      <h2 style="font-family:'DM Serif Display',serif;font-size:28px;text-align:center;margin-bottom:14px;color:var(--ink)">Score Financeiro</h2>
-      <p style="font-size:14px;color:var(--muted);text-align:center;line-height:1.7">Veja sua pontuação de 0 a 1000 calculada em tempo real com base nos seus hábitos financeiros.</p>
-    </div>
-
-    <!-- Slide 3 -->
-    <div class="ob-slide" id="ob-2" style="display:none">
-      <div style="width:80px;height:80px;background:var(--blue-bg);border-radius:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 28px">
-        <svg width="36" height="36" viewBox="0 0 20 20" fill="none" stroke="var(--blue)" stroke-width="1.4" stroke-linecap="round"><path d="M10 3c-3.3 0-6 2.2-6 5 0 1.6.8 3 2 4l-1 3 3-1.5c.6.2 1.3.3 2 .3 3.3 0 6-2.2 6-5s-2.7-5-6-5z"/><path d="M7 9h.5M10 9h.5M13 9h.5"/></svg>
-      </div>
-      <h2 style="font-family:'DM Serif Display',serif;font-size:28px;text-align:center;margin-bottom:14px;color:var(--ink)">IA Financeira</h2>
-      <p style="font-size:14px;color:var(--muted);text-align:center;line-height:1.7">Converse com sua IA pessoal. Ela analisa seus gastos e dá sugestões reais para economizar mais.</p>
-    </div>
-
-    <!-- Slide 4 -->
-    <div class="ob-slide" id="ob-3" style="display:none">
-      <div style="width:80px;height:80px;background:var(--amber-bg);border-radius:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 28px">
-        <svg width="36" height="36" viewBox="0 0 20 20" fill="none" stroke="var(--amber)" stroke-width="1.4" stroke-linecap="round"><path d="M10 2l6 2.5v5c0 4-2.5 7-6 8.5C4.5 16.5 2 13.5 2 9.5v-5L10 2z"/></svg>
-      </div>
-      <h2 style="font-family:'DM Serif Display',serif;font-size:28px;text-align:center;margin-bottom:14px;color:var(--ink)">Metas & Orçamento</h2>
-      <p style="font-size:14px;color:var(--muted);text-align:center;line-height:1.7">Defina metas, controle limites por categoria e acompanhe recorrências automáticas.</p>
-    </div>
-  </div>
-
-  <!-- Dots -->
-  <div style="display:flex;gap:8px;margin-top:36px" id="ob-dots">
-    <div class="ob-dot active"></div><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot"></div>
-  </div>
-
-  <!-- CTA -->
-  <div style="display:flex;gap:10px;margin-top:28px;width:100%;max-width:380px">
-    <button id="ob-skip" onclick="finishOnboarding()" class="btn btn-ghost" style="flex:0 0 auto">Pular</button>
-    <button id="ob-next" onclick="nextSlide()" class="btn btn-primary" style="flex:1;justify-content:center">Próximo</button>
-  </div>
-</div>
 
 <style>
 /* ══ ONBOARDING ══ */
