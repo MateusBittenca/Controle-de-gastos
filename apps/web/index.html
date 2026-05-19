@@ -22,17 +22,32 @@
       <div class="brand-mark" style="width:36px;height:36px;font-size:15px;border-color:var(--border);color:var(--ink)">F</div>
       <span style="font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Finanças</span>
     </div>
-    <h1 class="auth-title">Bem-vindo</h1>
-    <p class="auth-sub">Entre ou crie sua conta</p>
-    <div class="auth-tabs">
+    <h1 class="auth-title" id="auth-title">Bem-vindo</h1>
+    <p class="auth-sub" id="auth-sub">Entre ou crie sua conta</p>
+    <div class="auth-tabs" id="auth-tabs">
       <button type="button" class="auth-tab active" id="tab-login">Login</button>
       <button type="button" class="auth-tab" id="tab-register">Cadastro</button>
     </div>
     <p id="auth-error" class="auth-error"></p>
+    <p id="auth-success" class="auth-success hidden"></p>
     <form id="login-form" class="auth-form">
       <div class="form-group"><label class="form-lbl">E-mail</label><input class="form-inp edit-f" type="email" id="login-email" required autocomplete="email" value="mateus@email.com" /></div>
       <div class="form-group"><label class="form-lbl">Senha</label><input class="form-inp edit-f" type="password" id="login-password" required autocomplete="current-password" value="demo1234" /></div>
       <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px">Entrar</button>
+      <p class="auth-link-row"><button type="button" class="auth-link" id="link-forgot">Esqueci minha senha</button></p>
+    </form>
+    <form id="forgot-form" class="auth-form hidden">
+      <p class="auth-hint">Informe seu e-mail. Enviaremos um link para redefinir a senha (válido por 1 hora).</p>
+      <div class="form-group"><label class="form-lbl">E-mail</label><input class="form-inp edit-f" type="email" id="forgot-email" required autocomplete="email" /></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px">Enviar link</button>
+      <p class="auth-link-row"><button type="button" class="auth-link" id="link-back-login">Voltar ao login</button></p>
+      <div id="dev-reset-box" class="auth-dev-box hidden"></div>
+    </form>
+    <form id="reset-form" class="auth-form hidden">
+      <p class="auth-hint">Defina sua nova senha.</p>
+      <div class="form-group"><label class="form-lbl">Nova senha (mín. 6)</label><input class="form-inp edit-f" type="password" id="reset-password" required minlength="6" autocomplete="new-password" /></div>
+      <div class="form-group"><label class="form-lbl">Confirmar senha</label><input class="form-inp edit-f" type="password" id="reset-password2" required minlength="6" autocomplete="new-password" /></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px">Redefinir senha</button>
     </form>
     <form id="register-form" class="auth-form hidden">
       <div class="form-group"><label class="form-lbl">Nome</label><input class="form-inp edit-f" type="text" id="reg-name" required /></div>
@@ -53,7 +68,12 @@
     <div class="brand-mark">F</div>
     <span style="color:rgba(255,255,255,.75);font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:400">Finanças</span>
   </div>
-  <div class="tb-av" onclick="goPage('profile')" id="tb-av">M</div>
+  <div class="topbar-actions">
+    <button type="button" class="tb-logout btn-logout" title="Sair da conta" aria-label="Sair da conta">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 17H4a1 1 0 01-1-1V4a1 1 0 011-1h3M13 14l4-4-4-4M17 10H7"/></svg>
+    </button>
+    <div class="tb-av" onclick="goPage('profile')" id="tb-av">M</div>
+  </div>
 </header>
 
 <div class="app">
@@ -106,6 +126,10 @@
         <div class="sb-plan">Plano Pro</div>
       </div>
     </div>
+    <button type="button" class="sb-logout btn-logout" title="Sair da conta">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 17H4a1 1 0 01-1-1V4a1 1 0 011-1h3M13 14l4-4-4-4M17 10H7"/></svg>
+      <span>Sair</span>
+    </button>
   </div>
 </aside>
 
@@ -350,7 +374,7 @@
         </div>
         <button class="btn btn-ghost btn-sm" onclick="openPinModal()">Configurar</button>
       </div>
-      <div class="setting-row" style="border-bottom:none">
+      <div class="setting-row">
         <div class="setting-l">
           <div class="setting-ico" style="background:var(--surface)">
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M3 3l14 14M10 4a6 6 0 014.5 10M5.1 5.1A6 6 0 0010 16a6 6 0 004.9-2.5"/></svg>
@@ -358,6 +382,15 @@
           <div><div class="setting-lbl">Ocultar valores</div><div class="setting-sub">Esconde saldos na tela</div></div>
         </div>
         <button class="toggle" id="tog-hide" onclick="togglePref('hideValues',this)"></button>
+      </div>
+      <div class="setting-row" style="border-bottom:none">
+        <div class="setting-l">
+          <div class="setting-ico" style="background:var(--red-bg);color:var(--red)">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M7 17H4a1 1 0 01-1-1V4a1 1 0 011-1h3M13 14l4-4-4-4M17 10H7"/></svg>
+          </div>
+          <div><div class="setting-lbl">Sair da conta</div><div class="setting-sub">Encerra sua sessão</div></div>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm btn-logout">Sair</button>
       </div>
     </div>
 
@@ -395,8 +428,7 @@
     </div>
   </div>
 
-  <button type="button" class="btn btn-ghost btn-sm" id="btn-logout" style="margin-bottom:12px;width:100%;justify-content:center">Sair da conta</button>
-<div class="danger-zone" style="margin-top:14px">
+  <div class="danger-zone" style="margin-top:14px">
     <div class="danger-title">
       <svg viewBox="0 0 20 20" fill="none" stroke-width="1.4" stroke-linecap="round"><path d="M10 2l8 14H2L10 2z"/><path d="M10 8v4M10 14v.5"/></svg>
       Zona de risco

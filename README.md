@@ -34,6 +34,19 @@ npm run dev:web
 
 Ao abrir o app (carregar `/api/state`), o sistema verifica recorrentes com **próximo vencimento ≤ hoje**, cria a transação correspondente e avança a data (semanal, mensal ou anual). Se você ficar meses sem abrir o app, as parcelas em atraso são geradas de uma vez.
 
+## Recuperar senha
+
+1. Na tela de login, clique em **Esqueci minha senha** e informe o e-mail.
+2. Em **desenvolvimento** (sem SMTP), o link aparece no **console da API** e na tela após enviar.
+3. Em **produção**, configure `APP_URL` e as variáveis `SMTP_*` no `.env` (ex.: Resend, SendGrid, Gmail).
+4. O link abre `http://localhost:5173/?reset=TOKEN` — válido por **1 hora**.
+
+Se o banco já existia antes desta feature:
+
+```bash
+docker compose exec -T db psql -U financas -d financas < db/init/05-password-reset.sql
+```
+
 ## Conta demo
 
 | Campo | Valor |
@@ -59,7 +72,7 @@ db/init/      # Schema e seed SQL
 
 ## Variáveis (.env)
 
-Ver [.env.example](.env.example): `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN`, `API_PORT`.
+Ver [.env.example](.env.example): `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN`, `API_PORT`, `APP_URL`, `SMTP_*`.
 
 ## Documentação do banco
 

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import {
   clearAuthCookie,
   loginSchema,
@@ -9,8 +10,18 @@ import {
   signToken,
 } from '../auth.js';
 import { query } from '../db.js';
+import {
+  requestPasswordReset,
+  resetPasswordWithToken,
+} from '../password-reset.js';
 import { processDueRecurring } from '../recurring-processor.js';
 import { fetchAppState } from '../state.js';
+
+const forgotSchema = z.object({ email: z.string().email() });
+const resetSchema = z.object({
+  token: z.string().min(32),
+  password: z.string().min(6).max(128),
+});
 
 export async function authRoutes(app: FastifyInstance) {
   app.post('/api/auth/register', async (request, reply) => {
@@ -52,6 +63,33 @@ export async function authRoutes(app: FastifyInstance) {
   app.post('/api/auth/logout', async (_request, reply) => {
     clearAuthCookie(reply);
     return { ok: true };
+  });
+
+  app.post('/api/auth/forgot-password', async (request, reply) => {
+    const body = forgotSchema.safeParse(request.body);
+    if (!body.success) {
+      return reply.status(400).send({ error: 'E-mail inválido' });
+    }
+    const extra = await requestPasswordReset(body.data.email);
+    return {
+      message:
+        'Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.',
+      ...extra,
+    };
+  });
+
+  app.post('/api/auth/reset-password', async (request, reply) => {
+    const body = resetSchema.safeParse(request.body);
+    if (!body.success) {
+      return reply.status(400).send({ error: 'Dados inválidos' });
+    }
+    const ok = await resetPasswordWithToken(body.data.token, body.data.password);
+    if (!ok) {
+      return reply.status(400).send({
+        error: 'Link inválido ou expirado. Solicite um novo e-mail de recuperação.',
+      });
+    }
+    return { message: 'Senha redefinida com sucesso. Faça login com a nova senha.' };
   });
 
   app.get('/api/auth/me', async (request, reply) => {

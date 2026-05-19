@@ -44,6 +44,8 @@ declare global {
   }
 }
 
+type AuthView = 'login' | 'register' | 'forgot' | 'reset';
+
 function exposeApp() {
   const w = window as unknown as Record<string, unknown>;
   for (const [key, fn] of Object.entries(app)) {
@@ -98,6 +100,19 @@ function showError(msg: string) {
   }
 }
 
+function getResetTokenFromUrl(): string | null {
+  const token = new URLSearchParams(window.location.search).get('reset');
+  return token && token.length >= 32 ? token : null;
+}
+
+function clearResetFromUrl() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has('reset')) return;
+  url.searchParams.delete('reset');
+  const next = url.pathname + (url.search ? url.search : '') + url.hash;
+  window.history.replaceState({}, '', next);
+}
+
 async function bootstrapApp() {
   exposeApp();
   app.populateCatSel('recur-cat', 'expense');
@@ -114,20 +129,75 @@ window.finLogout = async () => {
 function setupAuthForm() {
   const loginForm = document.getElementById('login-form') as HTMLFormElement;
   const registerForm = document.getElementById('register-form') as HTMLFormElement;
+  const forgotForm = document.getElementById('forgot-form') as HTMLFormElement;
+  const resetForm = document.getElementById('reset-form') as HTMLFormElement;
   const tabLogin = document.getElementById('tab-login');
   const tabRegister = document.getElementById('tab-register');
+  const authTabs = document.getElementById('auth-tabs');
   const authError = document.getElementById('auth-error');
+  const authSuccess = document.getElementById('auth-success');
+  const authTitle = document.getElementById('auth-title');
+  const authSub = document.getElementById('auth-sub');
+  const authDemo = document.querySelector('.auth-demo') as HTMLElement | null;
+  const devResetBox = document.getElementById('dev-reset-box');
+
+  let resetToken: string | null = getResetTokenFromUrl();
+
+  const clearMessages = () => {
+    if (authError) authError.textContent = '';
+    if (authSuccess) {
+      authSuccess.textContent = '';
+      authSuccess.classList.add('hidden');
+    }
+    devResetBox?.classList.add('hidden');
+    if (devResetBox) devResetBox.innerHTML = '';
+  };
+
+  const setView = (view: AuthView) => {
+    clearMessages();
+    loginForm?.classList.toggle('hidden', view !== 'login');
+    registerForm?.classList.toggle('hidden', view !== 'register');
+    forgotForm?.classList.toggle('hidden', view !== 'forgot');
+    resetForm?.classList.toggle('hidden', view !== 'reset');
+    authTabs?.classList.toggle('hidden', view === 'forgot' || view === 'reset');
+    authDemo?.classList.toggle('hidden', view === 'forgot' || view === 'reset');
+
+    if (view === 'login') {
+      if (authTitle) authTitle.textContent = 'Bem-vindo';
+      if (authSub) authSub.textContent = 'Entre ou crie sua conta';
+    } else if (view === 'register') {
+      if (authTitle) authTitle.textContent = 'Criar conta';
+      if (authSub) authSub.textContent = 'Preencha seus dados';
+    } else if (view === 'forgot') {
+      if (authTitle) authTitle.textContent = 'Recuperar senha';
+      if (authSub) authSub.textContent = 'Enviaremos um link para seu e-mail';
+    } else if (view === 'reset') {
+      if (authTitle) authTitle.textContent = 'Nova senha';
+      if (authSub) authSub.textContent = 'Escolha uma senha segura';
+    }
+  };
 
   const setTab = (tab: 'login' | 'register') => {
     tabLogin?.classList.toggle('active', tab === 'login');
     tabRegister?.classList.toggle('active', tab === 'register');
-    loginForm?.classList.toggle('hidden', tab !== 'login');
-    registerForm?.classList.toggle('hidden', tab !== 'register');
-    if (authError) authError.textContent = '';
+    setView(tab);
   };
 
   tabLogin?.addEventListener('click', () => setTab('login'));
   tabRegister?.addEventListener('click', () => setTab('register'));
+
+  document.getElementById('link-forgot')?.addEventListener('click', () => {
+    const email = (document.getElementById('login-email') as HTMLInputElement).value;
+    const forgotEmail = document.getElementById('forgot-email') as HTMLInputElement;
+    if (forgotEmail && email) forgotEmail.value = email;
+    setView('forgot');
+  });
+
+  document.getElementById('link-back-login')?.addEventListener('click', () => {
+    clearResetFromUrl();
+    resetToken = null;
+    setTab('login');
+  });
 
   loginForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -141,6 +211,7 @@ function setupAuthForm() {
       await bootstrapApp();
     } catch (err) {
       showAuth();
+      setView('login');
       if (authError) authError.textContent = (err as Error).message;
     }
   });
@@ -158,17 +229,77 @@ function setupAuthForm() {
       await bootstrapApp();
     } catch (err) {
       showAuth();
+      setView('register');
       if (authError) authError.textContent = (err as Error).message;
     }
   });
 
-  document.getElementById('btn-logout')?.addEventListener('click', () => {
-    void window.finLogout();
+  forgotForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = (document.getElementById('forgot-email') as HTMLInputElement).value;
+    try {
+      clearMessages();
+      const res = await api.forgotPassword(email);
+      if (authSuccess) {
+        authSuccess.textContent = res.message;
+        authSuccess.classList.remove('hidden');
+      }
+      if (res.devResetUrl && devResetBox) {
+        devResetBox.classList.remove('hidden');
+        devResetBox.innerHTML = `<strong>Modo dev (sem SMTP):</strong> use o link abaixo.<br><a href="${res.devResetUrl}">${res.devResetUrl}</a>`;
+      }
+    } catch (err) {
+      if (authError) authError.textContent = (err as Error).message;
+    }
   });
+
+  resetForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const p1 = (document.getElementById('reset-password') as HTMLInputElement).value;
+    const p2 = (document.getElementById('reset-password2') as HTMLInputElement).value;
+    if (p1 !== p2) {
+      if (authError) authError.textContent = 'As senhas não coincidem';
+      return;
+    }
+    const token = resetToken ?? getResetTokenFromUrl();
+    if (!token) {
+      if (authError) authError.textContent = 'Link inválido. Solicite um novo e-mail.';
+      return;
+    }
+    try {
+      clearMessages();
+      const res = await api.resetPassword(token, p1);
+      clearResetFromUrl();
+      resetToken = null;
+      if (authSuccess) {
+        authSuccess.textContent = res.message;
+        authSuccess.classList.remove('hidden');
+      }
+      setTab('login');
+    } catch (err) {
+      if (authError) authError.textContent = (err as Error).message;
+    }
+  });
+
+  document.querySelectorAll('.btn-logout').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      void window.finLogout();
+    });
+  });
+
+  if (resetToken) {
+    setView('reset');
+  }
 }
 
 async function init() {
   setupAuthForm();
+  const resetToken = getResetTokenFromUrl();
+  if (resetToken) {
+    showAuth();
+    return;
+  }
+
   showLoading();
   try {
     await api.me();

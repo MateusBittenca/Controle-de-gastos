@@ -62,6 +62,8 @@ export async function authMiddleware(
   const publicPaths = [
     '/api/auth/register',
     '/api/auth/login',
+    '/api/auth/forgot-password',
+    '/api/auth/reset-password',
     '/health',
   ];
   const path = request.url.split('?')[0];
