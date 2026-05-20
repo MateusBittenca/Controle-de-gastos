@@ -320,7 +320,7 @@ function renderProfile(){
   const letter=(p.name||'M')[0].toUpperCase();
   document.getElementById('av-letter').textContent=letter;
   document.getElementById('sb-av').innerHTML=p.avatarSrc?`<img src="${p.avatarSrc}">`:(letter);
-  document.getElementById('sb-name').textContent=p.name||'Mateus';
+  document.getElementById('sb-name').textContent=p.name||'—';
   document.getElementById('tb-av').innerHTML=p.avatarSrc?`<img src="${p.avatarSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:(letter);
   document.getElementById('ps-txns').textContent=DB.transactions.length;
   document.getElementById('ps-goals').textContent=DB.goals.length;
@@ -475,7 +475,7 @@ function renderAll(){
   if(id==='budget')renderBudget();
   if(id==='goals')renderGoals();
   if(id==='recurring')renderRecurring();
-  if(id==='profile')renderProfile();
+  renderProfile();
   if(id==='score')renderScore();
   if(id==='ai')renderAI();
 }
@@ -553,56 +553,67 @@ function finishOnboarding(){
 /* ════════════════════════════════════
    SCORE FINANCEIRO
 ════════════════════════════════════ */
-function calcScore(){
+let _scoreNumIv: ReturnType<typeof setInterval> | undefined;
+
+function calcScore(range?: [Date, Date]){
   const now=new Date();
-  const r=[new Date(now.getFullYear(),now.getMonth(),1),new Date(now.getFullYear(),now.getMonth()+1,0)];
+  const r=range??[new Date(now.getFullYear(),now.getMonth(),1),new Date(now.getFullYear(),now.getMonth()+1,0)];
   const txns=DB.transactions.filter(t=>inRange(t.date,r));
   const inc=txns.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
   const exp=txns.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amt,0);
   const bal=inc-exp;
   const savRate=inc>0?Math.max(0,(bal/inc)):0;
-  const budgetCount=Object.keys(DB.budgets).length;
   const goalCount=DB.goals.length;
-  const txnCount=DB.transactions.length;
+  const monthTxnCount=txns.length;
+  const budgets=DB.budgets??{};
 
-  // Check budget overruns
   const spent={};
   txns.filter(t=>t.type==='expense').forEach(t=>{spent[t.cat]=(spent[t.cat]||0)+t.amt;});
-  const overruns=Object.entries(DB.budgets).filter(([cat,lim])=>(spent[cat]||0)>lim).length;
-  const totalBudgets=Object.keys(DB.budgets).length;
+  const overruns=Object.entries(budgets).filter(([cat,lim])=>(spent[cat]||0)>lim).length;
+  const totalBudgets=Object.keys(budgets).length;
 
-  // Scoring pillars (each 0–1)
-  const s_savings  = Math.min(1, savRate / 0.3);          // ideal: save 30%+
+  const s_savings  = Math.min(1, savRate / 0.3);
   const s_budget   = totalBudgets>0 ? Math.max(0,1-overruns/totalBudgets) : 0.5;
   const s_goals    = Math.min(1, goalCount/3);
-  const s_activity = Math.min(1, txnCount/20);
+  const s_activity = Math.min(1, monthTxnCount/20);
   const s_recurring= Math.min(1, DB.recurring.length/4);
 
   const raw = (s_savings*350 + s_budget*250 + s_goals*150 + s_activity*150 + s_recurring*100);
   const score = Math.round(Math.min(1000, Math.max(0, raw)));
 
-  return {score, s_savings, s_budget, s_goals, s_activity, s_recurring, savRate, overruns, totalBudgets, inc, exp, bal};
+  return {score, s_savings, s_budget, s_goals, s_activity, s_recurring, savRate, overruns, totalBudgets, monthTxnCount, inc, exp, bal};
 }
 
 function renderScore(){
-  const {score, s_savings, s_budget, s_goals, s_activity, s_recurring, savRate, overruns, inc, exp, bal} = calcScore();
+  const {score, s_savings, s_budget, s_goals, s_activity, s_recurring, savRate, overruns, totalBudgets, monthTxnCount, inc, exp, bal} = calcScore();
 
-  // Animate ring: dasharray=515, fill proportional to score/1000
-  const fill = 515 * (score/1000) * 0.75; // 75% of circle used
+  const fill = 515 * (score/1000) * 0.75;
   const arc=document.getElementById('score-arc');
-  requestAnimationFrame(()=>setTimeout(()=>{
-    arc.style.strokeDashoffset = 515 - fill;
-    // colour by tier
-    if(score>=800)arc.style.stroke='var(--green)';
-    else if(score>=600)arc.style.stroke='var(--blue)';
-    else if(score>=400)arc.style.stroke='var(--amber)';
-    else arc.style.stroke='var(--red)';
-  },100));
+  if(arc){
+    arc.style.strokeDashoffset='515';
+    requestAnimationFrame(()=>setTimeout(()=>{
+      arc.style.strokeDashoffset = String(515 - fill);
+      if(score>=800)arc.style.stroke='var(--green)';
+      else if(score>=600)arc.style.stroke='var(--blue)';
+      else if(score>=400)arc.style.stroke='var(--amber)';
+      else arc.style.stroke='var(--red)';
+    },100));
+  }
 
-  // Animate number
-  let cur=0;const step=Math.ceil(score/60);
   const numEl=document.getElementById('score-num');
-  const iv=setInterval(()=>{cur=Math.min(cur+step,score);numEl.textContent=cur;if(cur>=score)clearInterval(iv);},16);
+  if(_scoreNumIv)clearInterval(_scoreNumIv);
+  if(numEl){
+    if(score===0){
+      numEl.textContent='0';
+    }else{
+      let cur=0;const step=Math.max(1,Math.ceil(score/60));
+      _scoreNumIv=setInterval(()=>{
+        cur=Math.min(cur+step,score);
+        numEl.textContent=String(cur);
+        if(cur>=score){clearInterval(_scoreNumIv);_scoreNumIv=undefined;}
+      },16);
+    }
+  }
 
   // Tier
   let tier,tierColor,tierBg,tierDesc;
@@ -611,18 +622,21 @@ function renderScore(){
   else if(score>=400){tier='Regular';tierColor='var(--amber)';tierBg='var(--amber-bg)';tierDesc='Há espaço para melhorar. Defina orçamentos por categoria e acompanhe seus gastos semanalmente.';}
   else{tier='Atenção';tierColor='var(--red)';tierBg='var(--red-bg)';tierDesc='Suas finanças precisam de atenção. Comece definindo um orçamento e registrando todas as despesas.';}
 
-  document.getElementById('score-lbl').textContent=tier;
+  document.getElementById('score-lbl')!.textContent=tier;
   const badge=document.getElementById('score-tier-badge');
-  badge.style.background=tierBg;badge.style.color=tierColor;
-  document.getElementById('score-tier-txt').textContent=tier;
-  document.getElementById('score-desc').textContent=tierDesc;
+  if(badge){badge.style.background=tierBg;badge.style.color=tierColor;}
+  document.getElementById('score-tier-txt')!.textContent=tier;
+  document.getElementById('score-desc')!.textContent=tierDesc;
 
-  // Breakdown grid
+  const budgetDetail=totalBudgets===0?'sem limites definidos'
+    :overruns===0?'dentro dos limites'
+    :`${overruns} ${overruns===1?'categoria acima':'categorias acima'}`;
+
   const pillars=[
-    {lbl:'Poupança',val:Math.round(s_savings*350),max:350,pct:s_savings,color:s_savings>.6?'var(--green)':'var(--amber)',detail:Math.round(savRate*100)+'% da renda'},
-    {lbl:'Orçamento',val:Math.round(s_budget*250),max:250,pct:s_budget,color:s_budget>.7?'var(--green)':'var(--red)',detail:overruns+' categorias acima'},
+    {lbl:'Poupança',val:Math.round(s_savings*350),max:350,pct:s_savings,color:s_savings>.6?'var(--green)':'var(--amber)',detail:inc>0?`${Math.round(savRate*100)}% da renda`:'sem receitas no mês'},
+    {lbl:'Orçamento',val:Math.round(s_budget*250),max:250,pct:s_budget,color:s_budget>.7?'var(--green)':'var(--red)',detail:budgetDetail},
     {lbl:'Metas',val:Math.round(s_goals*150),max:150,pct:s_goals,color:'var(--blue)',detail:DB.goals.length+' metas ativas'},
-    {lbl:'Atividade',val:Math.round(s_activity*150),max:150,pct:s_activity,color:'var(--amber)',detail:DB.transactions.length+' transações'},
+    {lbl:'Atividade',val:Math.round(s_activity*150),max:150,pct:s_activity,color:'var(--amber)',detail:monthTxnCount+' transações no mês'},
     {lbl:'Recorrentes',val:Math.round(s_recurring*100),max:100,pct:s_recurring,color:'var(--muted)',detail:DB.recurring.length+' fixas'},
   ];
   document.getElementById('score-breakdown-grid').innerHTML=pillars.map((p,i)=>`
@@ -639,7 +653,7 @@ function renderScore(){
   if(s_savings<.6)tips.push({ico:'var(--amber-bg)','ic-color':'var(--amber)',icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="10" cy="10" r="7"/><path d="M10 7v3l2 2"/></svg>`,title:'Aumente sua taxa de poupança',body:`Você está poupando ${Math.round(savRate*100)}% da sua renda. O ideal é 30%+. Tente reduzir gastos em lazer e alimentação fora.`});
   if(overruns>0)tips.push({ico:'var(--red-bg)','ic-color':'var(--red)',icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M10 2l8 14H2L10 2z"/><path d="M10 8v4M10 14v.5"/></svg>`,title:`${overruns} categoria(s) acima do limite`,body:'Revise seus orçamentos ou reduza os gastos nas categorias ultrapassadas para recuperar 250 pontos.'});
   if(DB.goals.length===0)tips.push({ico:'var(--green-bg)','ic-color':'var(--green)',icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M10 2l6 2.5v5c0 4-2.5 7-6 8.5C4.5 16.5 2 13.5 2 9.5v-5L10 2z"/></svg>`,title:'Crie sua primeira meta',body:'Ter metas financeiras vale até 150 pontos no seu score. Crie objetivos como viagem ou fundo de emergência.'});
-  if(DB.budgets&&Object.keys(DB.budgets).length<3)tips.push({ico:'var(--blue-bg)','ic-color':'var(--blue)',icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="10" cy="10" r="8"/><path d="M10 6v4l3 3"/></svg>`,title:'Defina mais limites de orçamento',body:'Categorias com limite definido ajudam você a não extrapolar e valem pontos no seu score.'});
+  if(Object.keys(DB.budgets??{}).length<3)tips.push({ico:'var(--blue-bg)','ic-color':'var(--blue)',icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="10" cy="10" r="8"/><path d="M10 6v4l3 3"/></svg>`,title:'Defina mais limites de orçamento',body:'Categorias com limite definido ajudam você a não extrapolar e valem pontos no seu score.'});
   if(!tips.length)tips.push({ico:'var(--green-bg)','ic-color':'var(--green)',icon:`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 10l4 4 8-8"/></svg>`,title:'Parabéns! Suas finanças estão ótimas',body:'Continue registrando suas transações e mantendo seus orçamentos para manter a pontuação alta.'});
   document.getElementById('score-tips').innerHTML=tips.map(t=>`
     <div class="score-tip">
@@ -647,19 +661,18 @@ function renderScore(){
       <div><div class="score-tip-title">${t.title}</div><div class="score-tip-body">${t.body}</div></div>
     </div>`).join('');
 
-  // History (simulated last 6 months with real data where possible)
   const now2=new Date();
   const histMonths=Array.from({length:6},(_,i)=>{
     const d=new Date(now2.getFullYear(),now2.getMonth()-5+i,1);
     return{lbl:d.toLocaleDateString('pt-BR',{month:'short'}).replace('.',''),y:d.getFullYear(),m:d.getMonth()};
   });
-  const histScores=histMonths.map(({y,m},i)=>{
-    if(i===5)return score;
-    // simulate gradual growth toward current score
-    return Math.max(100,Math.round(score*(0.5+i*0.1)+Math.random()*40-20));
+  const histScores=histMonths.map(({y,m})=>{
+    const r:[Date,Date]=[new Date(y,m,1),new Date(y,m+1,0)];
+    return calcScore(r).score;
   });
   const hMax=Math.max(...histScores,100);
   const hChart=document.getElementById('score-history-chart');
+  if(!hChart)return;
   hChart.innerHTML=histScores.map((s,i)=>{
     const h=Math.max(6,(s/hMax)*100);
     const col=s>=800?'var(--green)':s>=600?'var(--blue)':s>=400?'var(--amber)':'var(--red)';
