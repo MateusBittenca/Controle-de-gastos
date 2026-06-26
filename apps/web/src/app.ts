@@ -63,6 +63,19 @@ const DONUT_PAL=['#1A1916','#1A4A7A','#2D6A4F','#8B5E00','#9B2335','#6B6560'];
    STATE & DB
 ════════════════════════════════════ */
 import { api } from './api/client.js';
+import { parseNubankCsv } from './nubank-parser.js';
+import {
+  reconcileNubankStatement,
+  reconcileRowsToBulkImport,
+  reconcileSummary,
+} from './nubank-reconcile.js';
+import type { NubankStatementType, ReconcileRow } from './nubank-types.js';
+import {
+  balanceDifference,
+  calculateExpectedBalance,
+  isSignificantDifference,
+  todayISO,
+} from './balance-calculator.js';
 import { DB, setDB, uid } from './state.js';
 
 let period='month', txnType='income', txnFilter='all', recurType='expense';
@@ -155,7 +168,30 @@ function renderOverview(){
   const pI=prev.filter(t=>t.type==='income').reduce((s,t)=>s+t.amt,0);
   const pE=prev.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amt,0);
   setBadge('kpi-bal-b',bal,pI-pE,false);setBadge('kpi-inc-b',inc,pI,false);setBadge('kpi-exp-b',exp,pE,true);
+  renderBankBalanceOverview();
   renderBarChart();renderDonut(txns);renderOvGoal();renderRecentTxns(txns);
+}
+
+function renderBankBalanceOverview(){
+  const card=document.getElementById('bank-balance-card');
+  const valEl=document.getElementById('bank-bal-val');
+  const subEl=document.getElementById('bank-bal-sub');
+  const badgeEl=document.getElementById('bank-bal-badge');
+  const ctaEl=document.getElementById('bank-bal-cta');
+  if(!card||!valEl||!subEl||!badgeEl)return;
+
+  const bb=DB.bankBalance;
+  if(bb.amount!=null&&bb.date!=null){
+    card.classList.add('hidden');
+    return;
+  }
+
+  card.classList.remove('hidden');
+  valEl.textContent='Configure seu saldo';
+  subEl.textContent='Conferido com o banco';
+  badgeEl.className='badge badge-neutral hidden';
+  badgeEl.textContent='';
+  if(ctaEl){ctaEl.classList.remove('hidden');ctaEl.textContent='Configurar';}
 }
 
 function setBadge(id,curr,prev,invert){
@@ -343,6 +379,41 @@ function renderProfile(){
     const existingLetter=avEl.querySelector('span');if(existingLetter)existingLetter.style.display='none';
     if(!avEl.querySelector('img')){const img=document.createElement('img');img.src=p.avatarSrc;avEl.insertBefore(img,avEl.querySelector('.av-overlay'));}
   }
+  renderBankBalanceProfile();
+}
+
+function renderBankBalanceProfile(){
+  const reported=document.getElementById('bb-reported');
+  const expected=document.getElementById('bb-expected');
+  const diffEl=document.getElementById('bb-diff');
+  const dateEl=document.getElementById('bb-date');
+  const statusEl=document.getElementById('bb-status');
+  if(!reported||!expected||!diffEl||!dateEl||!statusEl)return;
+
+  const bb=DB.bankBalance;
+  if(bb.amount==null||bb.date==null){
+    reported.textContent='—';
+    expected.textContent='—';
+    diffEl.textContent='—';
+    dateEl.textContent='Nenhuma conferência registrada';
+    statusEl.innerHTML='<span class="reconcile-badge matched">Não configurado</span>';
+    return;
+  }
+
+  reported.textContent=fmtDecH(bb.amount);
+  expected.textContent=fmtDecH(DB.expectedBalance);
+  diffEl.textContent=fmtSignedH(DB.difference);
+  dateEl.textContent=`Conferido em ${fmtDateBR(bb.date)}`;
+  const diff=DB.difference;
+  if(diff!=null&&Math.abs(diff)<=0.01){
+    statusEl.innerHTML='<span class="reconcile-badge missing">Em dia com o banco</span>';
+  }else if(diff!=null&&diff>0){
+    statusEl.innerHTML='<span class="reconcile-badge ignored">Banco com mais que o app</span>';
+  }else if(diff!=null){
+    statusEl.innerHTML='<span class="reconcile-badge ignored">Banco com menos que o app</span>';
+  }else{
+    statusEl.innerHTML='<span class="reconcile-badge matched">—</span>';
+  }
 }
 
 function syncTog(id,val){const el=document.getElementById(id);if(el)el.classList.toggle('on',!!val);}
@@ -460,6 +531,281 @@ async function handleImport(e){
     }catch{alert('Erro ao importar CSV.');}
   };
   reader.readAsText(file);
+}
+
+/* ════════════════════════════════════
+   NUBANK RECONCILE
+════════════════════════════════════ */
+let nubankPendingCsv='';
+let nubankReconcileRows:ReconcileRow[]=[];
+
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmtDec(n){return(SYM[DB.profile?.currency]||'R$ ')+Math.abs(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtDecH(n:number|null){if(n==null)return'—';return DB.profile?.prefs?.hideValues?'••••':fmtDec(n);}
+function fmtSignedH(n:number|null){if(n==null)return'—';if(DB.profile?.prefs?.hideValues)return'••••';const sym=SYM[DB.profile?.currency]||'R$ ';const s=n>=0?'+ ':'- ';return s+sym+Math.abs(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtDateBR(iso:string){const[y,m,d]=iso.split('-');return`${d}/${m}/${y}`;}
+
+const RECON_STATUS={missing:{lbl:'Faltando',cls:'missing'},matched:{lbl:'Já lançado',cls:'matched'},recurring:{lbl:'Recorrente',cls:'recurring'},ignored:{lbl:'Ignorado',cls:'ignored'}};
+
+function openNubankReconcile(){document.getElementById('nubank-inp')?.click();}
+
+function handleNubankFile(e){
+  const input=e.target as HTMLInputElement;
+  const file=input.files?.[0];
+  input.value='';
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    nubankPendingCsv=ev.target?.result as string;
+    nubankReconcileRows=[];
+    document.getElementById('nubank-step-type')?.classList.remove('hidden');
+    document.getElementById('nubank-step-preview')?.classList.add('hidden');
+    const acc=document.getElementById('nubank-type-account') as HTMLInputElement;
+    if(acc)acc.checked=true;
+    openModal('nubank-overlay');
+  };
+  reader.readAsText(file);
+}
+
+function runNubankReconcile(){
+  const typeEl=document.querySelector('input[name="nubank-type"]:checked') as HTMLInputElement;
+  if(!typeEl){toast('Selecione o tipo de extrato');return;}
+  try{
+    const statement=parseNubankCsv(nubankPendingCsv,typeEl.value as NubankStatementType);
+    nubankReconcileRows=reconcileNubankStatement(statement,DB.transactions,DB.recurring);
+    document.getElementById('nubank-step-type')?.classList.add('hidden');
+    document.getElementById('nubank-step-preview')?.classList.remove('hidden');
+    renderNubankPreview();
+  }catch(err){toast((err as Error).message||'Erro ao ler CSV');}
+}
+
+function renderNubankPreview(){
+  const sum=reconcileSummary(nubankReconcileRows);
+  const sumEl=document.getElementById('nubank-summary');
+  if(sumEl)sumEl.textContent=`${sum.missing} faltando · ${sum.matched} já lançados · ${sum.recurring} recorrentes · ${sum.ignored} ignorados`;
+
+  const tbody=document.getElementById('nubank-tbody');
+  const importBtn=document.getElementById('nubank-import-btn') as HTMLButtonElement;
+  const selCount=reconcileRowsToBulkImport(nubankReconcileRows).length;
+  if(importBtn){
+    importBtn.textContent=`Importar ${selCount} selecionada${selCount!==1?'s':''}`;
+    importBtn.disabled=selCount===0;
+  }
+
+  const allMissing=nubankReconcileRows.filter(r=>r.status==='missing');
+  const allChecked=allMissing.length>0&&allMissing.every(r=>r.selected);
+  const headCb=document.getElementById('nubank-select-all') as HTMLInputElement;
+  if(headCb)headCb.checked=allChecked;
+
+  if(!tbody)return;
+  if(!nubankReconcileRows.length){
+    tbody.innerHTML='<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--muted)">Nenhuma linha</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML=nubankReconcileRows.map((r,i)=>{
+    const st=RECON_STATUS[r.status];
+    const cat=getCat(r.suggestedCat).name;
+    const amtCls=r.suggestedType==='income'?'inc':'exp';
+    const tip=r.ignoreReason?` title="${escHtml(r.ignoreReason)}"`:'';
+    const canSelect=r.status==='missing';
+    return`<tr>
+      <td>${canSelect?`<input type="checkbox" ${r.selected?'checked':''} onchange="toggleNubankRow(${i})">`:''}</td>
+      <td>${r.nubank.date}</td>
+      <td class="nubank-desc">${escHtml(r.nubank.description)}</td>
+      <td class="nubank-amt ${amtCls}">${fmtDec(r.suggestedAmt)}</td>
+      <td><span class="reconcile-badge ${st.cls}"${tip}>${st.lbl}</span></td>
+      <td>${cat}</td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleNubankRow(idx){
+  const row=nubankReconcileRows[idx];
+  if(!row||row.status!=='missing')return;
+  row.selected=!row.selected;
+  renderNubankPreview();
+}
+
+function toggleNubankSelectAll(el){
+  const checked=(el as HTMLInputElement).checked;
+  nubankReconcileRows.forEach(r=>{if(r.status==='missing')r.selected=checked;});
+  renderNubankPreview();
+}
+
+function selectNubankMissingOnly(){
+  nubankReconcileRows.forEach(r=>{r.selected=r.status==='missing';});
+  renderNubankPreview();
+}
+
+function closeNubankModal(e?:Event){
+  const el=document.getElementById('nubank-overlay');
+  if(e&&el&&e.target!==el)return;
+  el?.classList.remove('open');
+  nubankPendingCsv='';
+  nubankReconcileRows=[];
+  document.getElementById('nubank-step-type')?.classList.remove('hidden');
+  document.getElementById('nubank-step-preview')?.classList.add('hidden');
+}
+
+async function confirmNubankImport(){
+  const bulk=reconcileRowsToBulkImport(nubankReconcileRows);
+  if(!bulk.length){toast('Nenhuma transação selecionada para importar');return;}
+  try{
+    const {added}=await api.importTransactions(bulk);
+    await window.finReload();
+    closeNubankModal();
+    renderAll();
+    toast(added===1?'1 transação importada':added+' transações importadas');
+  }catch{toast('Erro ao importar');}
+}
+
+/* ════════════════════════════════════
+   BANK BALANCE
+════════════════════════════════════ */
+let balancePending={amount:0,date:''};
+let balancePreview={expected:null as number|null,difference:null as number|null};
+let balanceNeedsFinalConfirm=false;
+
+function openBalanceModal(){
+  const bb=DB.bankBalance;
+  const amtInp=document.getElementById('bal-amount') as HTMLInputElement;
+  const dateInp=document.getElementById('bal-date') as HTMLInputElement;
+  if(amtInp)amtInp.value=bb.amount!=null?String(bb.amount):'';
+  if(dateInp)dateInp.value=todayISO();
+  document.getElementById('balance-step-input')?.classList.remove('hidden');
+  document.getElementById('balance-step-preview')?.classList.add('hidden');
+  document.getElementById('balance-step-confirm')?.classList.add('hidden');
+  openModal('balance-overlay');
+}
+
+function closeBalanceModal(e?:Event){
+  const el=document.getElementById('balance-overlay');
+  if(e&&el&&e.target!==el)return;
+  el?.classList.remove('open');
+  balancePending={amount:0,date:''};
+  balancePreview={expected:null,difference:null};
+  balanceNeedsFinalConfirm=false;
+}
+
+function buildBalanceMessages(amount:number,date:string,expected:number|null,diff:number|null){
+  const msgs:string[]=[];
+  const bb=DB.bankBalance;
+  const isFirst=bb.amount==null||bb.date==null;
+
+  if(isFirst){
+    msgs.push('Esta será sua referência inicial. Transações com data posterior serão somadas a partir desta data.');
+  }else if(bb.amount!==amount||bb.date!==date){
+    msgs.push(`Saldo anterior: ${fmtDecH(bb.amount)} em ${fmtDateBR(bb.date!)}. Novo saldo: ${fmtDecH(amount)}.`);
+  }
+
+  if(expected!=null&&diff!=null){
+    if(Math.abs(diff)<=0.01){
+      msgs.push('Tudo certo — o app está em dia com o banco.');
+    }else{
+      if(isSignificantDifference(diff,expected)){
+        msgs.push('A diferença é significativa. Pode haver lançamentos faltando ou duplicados. Recomendamos conferir o extrato Nubank antes de confirmar.');
+      }
+      if(diff>0){
+        msgs.push(`O banco tem ${fmtDecH(diff)} a mais que o app. Possíveis entradas não lançadas.`);
+      }else{
+        msgs.push(`O banco tem ${fmtDecH(Math.abs(diff))} a menos que o app. Possíveis despesas não lançadas ou duplicatas.`);
+      }
+    }
+  }
+
+  return msgs;
+}
+
+function continueBalancePreview(){
+  const amtInp=document.getElementById('bal-amount') as HTMLInputElement;
+  const dateInp=document.getElementById('bal-date') as HTMLInputElement;
+  const amount=parseFloat(amtInp?.value);
+  const date=dateInp?.value?.trim();
+  if(Number.isNaN(amount)||!date){toast('Informe saldo e data válidos');return;}
+
+  const bb=DB.bankBalance;
+  if(bb.amount===amount&&bb.date===date){
+    toast('Saldo já está atualizado');
+    return;
+  }
+
+  balancePending={amount,date};
+  const hasAnchor=bb.amount!=null&&bb.date!=null;
+  const expected=hasAnchor
+    ?calculateExpectedBalance({anchorAmount:bb.amount!,anchorDate:bb.date!},DB.transactions,date)
+    :null;
+  const diff=expected!=null?balanceDifference(amount,expected):null;
+  balancePreview={expected,difference:diff};
+
+  const msgs=buildBalanceMessages(amount,date,expected,diff);
+  const msgsEl=document.getElementById('balance-msgs');
+  if(msgsEl){
+    msgsEl.innerHTML=msgs.map(m=>`<div class="balance-msg">${escHtml(m)}</div>`).join('');
+  }
+
+  const prevEl=document.getElementById('balance-preview-lines');
+  if(prevEl){
+    prevEl.innerHTML=`
+      <div class="balance-preview-row"><span>Saldo informado</span><strong>${fmtDecH(amount)} <small>(${fmtDateBR(date)})</small></strong></div>
+      <div class="balance-preview-row"><span>Saldo calculado</span><strong>${fmtDecH(expected)}</strong></div>
+      <div class="balance-preview-row"><span>Diferença</span><strong class="${diff!=null&&diff<0?'exp':'inc'}">${fmtSignedH(diff)}</strong></div>`;
+  }
+
+  const sig=diff!=null&&expected!=null&&isSignificantDifference(diff,expected);
+  const bigChange=bb.amount!=null&&Math.abs(amount-bb.amount)>100;
+  balanceNeedsFinalConfirm=!!(sig||bigChange);
+
+  const nubankBtn=document.getElementById('balance-nubank-btn');
+  if(nubankBtn)nubankBtn.classList.toggle('hidden',!(diff!=null&&isSignificantDifference(diff,expected??0)));
+
+  document.getElementById('balance-step-input')?.classList.add('hidden');
+  document.getElementById('balance-step-preview')?.classList.remove('hidden');
+  document.getElementById('balance-step-confirm')?.classList.add('hidden');
+}
+
+function backBalanceInput(){
+  document.getElementById('balance-step-input')?.classList.remove('hidden');
+  document.getElementById('balance-step-preview')?.classList.add('hidden');
+  document.getElementById('balance-step-confirm')?.classList.add('hidden');
+}
+
+function proceedBalanceConfirm(){
+  if(balanceNeedsFinalConfirm){
+    const confirmEl=document.getElementById('balance-confirm-text');
+    if(confirmEl){
+      confirmEl.innerHTML=`Você está definindo o saldo bancário como <strong>${fmtDecH(balancePending.amount)}</strong>.<br>
+        O app calcula <strong>${fmtDecH(balancePreview.expected)}</strong> — diferença de <strong>${fmtSignedH(balancePreview.difference)}</strong>.<br>
+        Essa ação atualiza sua referência financeira.`;
+    }
+    document.getElementById('balance-step-preview')?.classList.add('hidden');
+    document.getElementById('balance-step-confirm')?.classList.remove('hidden');
+    return;
+  }
+  void saveBankBalance();
+}
+
+function backBalancePreview(){
+  document.getElementById('balance-step-preview')?.classList.remove('hidden');
+  document.getElementById('balance-step-confirm')?.classList.add('hidden');
+}
+
+function balanceGoNubank(){
+  closeBalanceModal();
+  openNubankReconcile();
+}
+
+async function saveBankBalance(){
+  try{
+    const res=await api.updateBankBalance(balancePending.amount,balancePending.date);
+    DB.bankBalance=res.bankBalance;
+    DB.expectedBalance=res.expectedBalance;
+    DB.difference=res.difference;
+    closeBalanceModal();
+    renderAll();
+    renderProfile();
+    toast(`Saldo bancário atualizado em ${fmtDateBR(balancePending.date)}`);
+  }catch{toast('Erro ao salvar saldo');}
 }
 
 async function clearData(){if(!confirm('Apagar TODOS os dados?'))return;try{const s=await api.clearData();setDB(s);renderAll();renderProfile();toast('Dados apagados');}catch{toast('Erro');}}
@@ -818,6 +1164,10 @@ export {
   saveTxn, saveBudget, saveGoal, saveRecur, saveProfile, savePin,
   delBudget, delGoal, delRecur, addToGoal, setFilter,
   toggleTheme, togglePref, exportData, handleImport, handleAvatar,
+  openNubankReconcile, handleNubankFile, runNubankReconcile, toggleNubankRow,
+  toggleNubankSelectAll, selectNubankMissingOnly, confirmNubankImport, closeNubankModal,
+  openBalanceModal, closeBalanceModal, continueBalancePreview, backBalanceInput,
+  proceedBalanceConfirm, backBalancePreview, balanceGoNubank, saveBankBalance,
   clearData, resetDemo, renderScore, renderAI, sendAIMsg, runAIAnalysis,
   nextSlide, finishOnboarding, toast,
 };

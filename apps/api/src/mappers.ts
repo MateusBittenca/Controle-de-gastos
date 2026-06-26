@@ -1,4 +1,9 @@
-import type { AppState, FrontGoal, FrontRecurring, FrontTransaction } from './types.js';
+import type { AppState, BankBalance, FrontGoal, FrontRecurring, FrontTransaction } from './types.js';
+import {
+  balanceDifference,
+  calculateExpectedBalance,
+  todayISO,
+} from './balance-calculator.js';
 
 export function mapTransaction(row: {
   id: string;
@@ -64,6 +69,48 @@ export function mapRecurring(row: {
   };
 }
 
+export function mapBankBalance(row: {
+  bank_balance: string | null;
+  bank_balance_date: Date | string | null;
+  bank_balance_updated_at: Date | string | null;
+}): BankBalance {
+  const date =
+    row.bank_balance_date == null
+      ? null
+      : row.bank_balance_date instanceof Date
+        ? row.bank_balance_date.toISOString().slice(0, 10)
+        : String(row.bank_balance_date).slice(0, 10);
+  const updatedAt =
+    row.bank_balance_updated_at == null
+      ? null
+      : row.bank_balance_updated_at instanceof Date
+        ? row.bank_balance_updated_at.toISOString()
+        : String(row.bank_balance_updated_at);
+  return {
+    amount: row.bank_balance != null ? Number(row.bank_balance) : null,
+    date,
+    updatedAt,
+  };
+}
+
+export function computeBalanceMetrics(
+  bankBalance: BankBalance,
+  transactions: FrontTransaction[],
+): { expectedBalance: number | null; difference: number | null } {
+  if (bankBalance.amount == null || bankBalance.date == null) {
+    return { expectedBalance: null, difference: null };
+  }
+  const expected = calculateExpectedBalance(
+    { anchorAmount: bankBalance.amount, anchorDate: bankBalance.date },
+    transactions,
+    todayISO(),
+  );
+  return {
+    expectedBalance: expected,
+    difference: balanceDifference(bankBalance.amount, expected),
+  };
+}
+
 export function buildAppState(parts: {
   user: {
     name: string;
@@ -73,6 +120,9 @@ export function buildAppState(parts: {
     streak_days: number;
     avatar_url: string | null;
     pin_hash: string | null;
+    bank_balance: string | null;
+    bank_balance_date: Date | string | null;
+    bank_balance_updated_at: Date | string | null;
   };
   prefs: {
     budget_alert: boolean;
@@ -85,12 +135,21 @@ export function buildAppState(parts: {
   goals: FrontGoal[];
   recurring: FrontRecurring[];
 }): AppState {
+  const bankBalance = mapBankBalance(parts.user);
+  const { expectedBalance, difference } = computeBalanceMetrics(
+    bankBalance,
+    parts.transactions,
+  );
+
   return {
     transactions: parts.transactions,
     budgets: parts.budgets,
     goals: parts.goals,
     recurring: parts.recurring,
     streakDays: parts.user.streak_days,
+    bankBalance,
+    expectedBalance,
+    difference,
     profile: {
       name: parts.user.name,
       email: parts.user.email,

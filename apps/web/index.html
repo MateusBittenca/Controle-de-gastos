@@ -262,9 +262,24 @@
       <div class="period-tab" data-period="year">Ano</div>
     </div>
   </div>
+
+  <div class="card bank-balance-card" id="bank-balance-card" style="animation-delay:.03s;margin-bottom:14px" onclick="openBalanceModal()">
+    <div class="bank-balance-inner">
+      <div>
+        <div class="kpi-lbl">Saldo bancário</div>
+        <div class="kpi-val" id="bank-bal-val" style="font-size:28px;margin-top:4px">—</div>
+        <div class="bank-bal-sub" id="bank-bal-sub">Conferido com o banco</div>
+      </div>
+      <div class="bank-balance-actions">
+        <span class="badge badge-neutral hidden" id="bank-bal-badge"></span>
+        <button type="button" class="btn btn-ghost btn-sm hidden" id="bank-bal-cta" onclick="event.stopPropagation();openBalanceModal()">Configurar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="kpi-grid">
     <div class="kpi-card" style="animation-delay:.05s">
-      <div class="kpi-lbl">Saldo total</div>
+      <div class="kpi-lbl">Resultado do período</div>
       <div class="kpi-val" id="kpi-bal">R$ 0</div>
       <span class="badge badge-neutral" id="kpi-bal-b">—</span>
     </div>
@@ -494,6 +509,25 @@
       </div>
     </div>
 
+    <!-- Saldo bancário -->
+    <div class="profile-card" style="animation-delay:.18s">
+      <div class="card-hd"><span class="card-title">Saldo bancário</span></div>
+      <p class="bank-edu-text">Informe o saldo que aparece no app do seu banco. Isso é diferente do resultado do mês (receitas − despesas).</p>
+      <div class="balance-info-grid">
+        <div class="balance-info-item"><span class="balance-info-lbl">Saldo informado</span><span class="balance-info-val" id="bb-reported">—</span></div>
+        <div class="balance-info-item"><span class="balance-info-lbl">Saldo calculado</span><span class="balance-info-val" id="bb-expected">—</span></div>
+        <div class="balance-info-item"><span class="balance-info-lbl">Diferença</span><span class="balance-info-val" id="bb-diff">—</span></div>
+      </div>
+      <div class="balance-profile-meta">
+        <span id="bb-date" style="font-size:12.5px;color:var(--muted)">Nenhuma conferência registrada</span>
+        <span id="bb-status"></span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
+        <button type="button" class="btn btn-primary btn-sm" onclick="openBalanceModal()">Atualizar saldo</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openNubankReconcile()">Conferir extrato Nubank</button>
+      </div>
+    </div>
+
     <!-- Dados -->
     <div class="profile-card" style="animation-delay:.20s">
       <div class="card-hd"><span class="card-title">Dados</span></div>
@@ -516,6 +550,16 @@
         <button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-inp').click()">Importar</button>
       </div>
       <input type="file" id="import-inp" accept=".csv" style="display:none" onchange="handleImport(event)">
+      <div class="setting-row">
+        <div class="setting-l">
+          <div class="setting-ico" style="background:var(--amber-bg,#FFF3D6);color:var(--amber,#8B5E00)">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M4 4h12v12H4z"/><path d="M7 8h6M7 11h4"/></svg>
+          </div>
+          <div><div class="setting-lbl">Conferir extrato Nubank</div><div class="setting-sub">Comparar com lançamentos existentes</div></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="openNubankReconcile()">Conferir</button>
+      </div>
+      <input type="file" id="nubank-inp" accept=".csv" style="display:none" onchange="handleNubankFile(event)">
       <div class="setting-row" style="border-bottom:none">
         <div class="setting-l">
           <div class="setting-ico" style="background:var(--red-bg);color:var(--red)">
@@ -745,6 +789,113 @@
     <div class="modal-acts">
       <button class="btn btn-ghost" onclick="closeModal('pin-overlay')">Cancelar</button>
       <button class="btn btn-primary" onclick="savePin()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL SALDO BANCÁRIO ══ -->
+<div class="overlay" id="balance-overlay" onclick="closeBalanceModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Saldo bancário</div>
+
+    <div id="balance-step-input">
+      <div class="nubank-warn nubank-warn-sm">
+        Digite o saldo exato que aparece no app do Nubank (conta corrente), não o valor da fatura do cartão.
+      </div>
+      <div class="form-group">
+        <label class="form-lbl">Saldo no banco</label>
+        <input class="form-inp big" id="bal-amount" type="number" step="0.01" placeholder="0,00">
+      </div>
+      <div class="form-group">
+        <label class="form-lbl">Data da conferência</label>
+        <input class="form-inp" id="bal-date" type="date">
+      </div>
+      <div class="modal-acts">
+        <button type="button" class="btn btn-ghost" onclick="closeBalanceModal()">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="continueBalancePreview()">Continuar</button>
+      </div>
+    </div>
+
+    <div id="balance-step-preview" class="hidden">
+      <div id="balance-preview-lines" class="balance-preview-box"></div>
+      <div id="balance-msgs" class="balance-msgs"></div>
+      <div class="modal-acts" style="flex-wrap:wrap">
+        <button type="button" class="btn btn-ghost" onclick="backBalanceInput()">Voltar</button>
+        <button type="button" class="btn btn-ghost hidden" id="balance-nubank-btn" onclick="balanceGoNubank()">Conferir extrato Nubank</button>
+        <button type="button" class="btn btn-primary" onclick="proceedBalanceConfirm()">Confirmar saldo</button>
+      </div>
+    </div>
+
+    <div id="balance-step-confirm" class="hidden">
+      <div class="nubank-warn">
+        <strong>Tem certeza?</strong>
+        <p id="balance-confirm-text" style="margin:10px 0 0;font-size:13px;line-height:1.55"></p>
+      </div>
+      <div class="modal-acts">
+        <button type="button" class="btn btn-ghost" onclick="backBalancePreview()">Voltar</button>
+        <button type="button" class="btn btn-primary" onclick="saveBankBalance()">Sim, confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL NUBANK RECONCILE ══ -->
+<div class="overlay" id="nubank-overlay" onclick="closeNubankModal(event)">
+  <div class="modal nubank-modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Conferir extrato Nubank</div>
+
+    <div id="nubank-step-type">
+      <div class="nubank-warn">
+        Use um extrato por vez. Se você já lançou gastos do cartão manualmente, prefira conferir só a conta — ou vice-versa — para evitar contagem dupla.
+      </div>
+      <div class="form-group">
+        <label class="form-lbl">Tipo de extrato</label>
+        <div class="nubank-type-row">
+          <label class="nubank-type-opt">
+            <input type="radio" name="nubank-type" id="nubank-type-account" value="account" checked>
+            <span>Conta corrente</span>
+          </label>
+          <label class="nubank-type-opt">
+            <input type="radio" name="nubank-type" id="nubank-type-card" value="credit_card">
+            <span>Cartão de crédito</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-acts">
+        <button class="btn btn-ghost" onclick="closeNubankModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="runNubankReconcile()">Analisar</button>
+      </div>
+    </div>
+
+    <div id="nubank-step-preview" class="hidden">
+      <div class="nubank-warn nubank-warn-sm">
+        Apenas linhas <strong>Faltando</strong> podem ser importadas. Duplicatas e recorrentes ficam desmarcadas.
+      </div>
+      <div id="nubank-summary" class="nubank-summary"></div>
+      <div class="nubank-toolbar">
+        <button class="btn btn-ghost btn-sm" type="button" onclick="selectNubankMissingOnly()">Selecionar só faltantes</button>
+      </div>
+      <div class="nubank-table-wrap">
+        <table class="nubank-table">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="nubank-select-all" onchange="toggleNubankSelectAll(this)"></th>
+              <th>Data</th>
+              <th>Descrição</th>
+              <th>Valor</th>
+              <th>Status</th>
+              <th>Categoria</th>
+            </tr>
+          </thead>
+          <tbody id="nubank-tbody"></tbody>
+        </table>
+      </div>
+      <div class="modal-acts">
+        <button class="btn btn-ghost" onclick="closeNubankModal()">Cancelar</button>
+        <button class="btn btn-primary" id="nubank-import-btn" onclick="confirmNubankImport()">Importar selecionadas</button>
+      </div>
     </div>
   </div>
 </div>

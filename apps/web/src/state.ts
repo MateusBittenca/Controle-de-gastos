@@ -16,6 +16,9 @@ export const DB: AppState = {
   recurring: [],
   profile: { ...emptyProfile },
   streakDays: 0,
+  bankBalance: { amount: null, date: null, updatedAt: null },
+  expectedBalance: null,
+  difference: null,
 };
 
 export function setDB(state: AppState) {
@@ -25,6 +28,9 @@ export function setDB(state: AppState) {
   DB.recurring = state.recurring;
   DB.profile = state.profile;
   DB.streakDays = state.streakDays;
+  DB.bankBalance = state.bankBalance ?? { amount: null, date: null, updatedAt: null };
+  DB.expectedBalance = state.expectedBalance ?? null;
+  DB.difference = state.difference ?? null;
 }
 
 export function uid() {

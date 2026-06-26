@@ -12,12 +12,16 @@ export async function fetchAppState(userId: string): Promise<AppState> {
       streak_days: number;
       avatar_url: string | null;
       pin_hash: string | null;
+      bank_balance: string | null;
+      bank_balance_date: Date | string | null;
+      bank_balance_updated_at: Date | string | null;
       budget_alert: boolean;
       goal_alert: boolean;
       hide_values: boolean;
       theme: string;
     }>(
       `SELECT u.name, u.email, u.salary, u.currency, u.streak_days, u.avatar_url, u.pin_hash,
+              u.bank_balance, u.bank_balance_date, u.bank_balance_updated_at,
               p.budget_alert, p.goal_alert, p.hide_values, p.theme
        FROM users u
        JOIN user_preferences p ON p.user_id = u.id
@@ -83,6 +87,9 @@ export async function fetchAppState(userId: string): Promise<AppState> {
       streak_days: user.streak_days,
       avatar_url: user.avatar_url,
       pin_hash: user.pin_hash,
+      bank_balance: user.bank_balance,
+      bank_balance_date: user.bank_balance_date,
+      bank_balance_updated_at: user.bank_balance_updated_at,
     },
     prefs: {
       budget_alert: user.budget_alert,

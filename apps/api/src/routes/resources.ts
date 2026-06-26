@@ -5,6 +5,11 @@ import { query } from '../db.js';
 import { mapGoal, mapRecurring, mapTransaction } from '../mappers.js';
 import { fetchAppState } from '../state.js';
 
+const bankBalanceSchema = z.object({
+  amount: z.number(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
 const txnSchema = z.object({
   type: z.enum(['income', 'expense']),
   cat: z.string(),
@@ -241,6 +246,30 @@ export async function resourceRoutes(app: FastifyInstance) {
     }
 
     return fetchAppState(uid);
+  });
+
+  app.put('/api/bank-balance', async (request, reply) => {
+    const uid = request.userId!;
+    const body = bankBalanceSchema.safeParse(request.body);
+    if (!body.success) return reply.status(400).send({ error: 'Dados inválidos' });
+
+    const { amount, date } = body.data;
+    await query(
+      `UPDATE users SET
+        bank_balance = $1,
+        bank_balance_date = $2,
+        bank_balance_updated_at = NOW(),
+        updated_at = NOW()
+       WHERE id = $3`,
+      [amount, date, uid],
+    );
+
+    const state = await fetchAppState(uid);
+    return {
+      bankBalance: state.bankBalance,
+      expectedBalance: state.expectedBalance,
+      difference: state.difference,
+    };
   });
 
   app.patch('/api/profile/pin', async (request, reply) => {

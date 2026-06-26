@@ -44,6 +44,12 @@ export interface Profile {
   };
 }
 
+export interface BankBalance {
+  amount: number | null;
+  date: string | null;
+  updatedAt: string | null;
+}
+
 export interface AppState {
   transactions: Transaction[];
   budgets: Record<string, number>;
@@ -51,4 +57,7 @@ export interface AppState {
   recurring: Recurring[];
   profile: Profile;
   streakDays: number;
+  bankBalance: BankBalance;
+  expectedBalance: number | null;
+  difference: number | null;
 }

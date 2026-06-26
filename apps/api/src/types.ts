@@ -44,6 +44,12 @@ export interface FrontProfile {
   };
 }
 
+export interface BankBalance {
+  amount: number | null;
+  date: string | null;
+  updatedAt: string | null;
+}
+
 export interface AppState {
   transactions: FrontTransaction[];
   budgets: Record<string, number>;
@@ -51,6 +57,9 @@ export interface AppState {
   recurring: FrontRecurring[];
   profile: FrontProfile;
   streakDays: number;
+  bankBalance: BankBalance;
+  expectedBalance: number | null;
+  difference: number | null;
 }
 
 export interface JwtPayload {

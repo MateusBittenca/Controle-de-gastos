@@ -164,4 +164,15 @@ export const api = {
   resetDemo() {
     return request<AppState>('/data/reset-demo', { method: 'POST' });
   },
+
+  updateBankBalance(amount: number, date: string) {
+    return request<{
+      bankBalance: AppState['bankBalance'];
+      expectedBalance: number | null;
+      difference: number | null;
+    }>('/bank-balance', {
+      method: 'PUT',
+      body: JSON.stringify({ amount, date }),
+    });
+  },
 };

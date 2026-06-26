@@ -808,3 +808,71 @@ img,svg{max-width:100%}
   .score-ring{animation:none !important}
   #score-arc{transition:none !important}
 }
+
+/* ══ NUBANK RECONCILE ══ */
+.modal.nubank-modal{max-width:min(640px,100%);max-height:90vh;overflow:hidden;display:flex;flex-direction:column}
+.nubank-warn{
+  font-size:13px;line-height:1.5;color:var(--muted);
+  background:var(--amber-bg,#FFF3D6);border:1px solid var(--border);
+  border-radius:12px;padding:12px 14px;margin-bottom:16px
+}
+.nubank-warn-sm{font-size:12px;padding:10px 12px;margin-bottom:10px}
+.nubank-type-row{display:flex;gap:10px;flex-wrap:wrap}
+.nubank-type-opt{
+  flex:1;min-width:140px;display:flex;align-items:center;gap:8px;
+  padding:12px 14px;border:1px solid var(--border);border-radius:12px;
+  cursor:pointer;background:var(--surface);font-size:13.5px
+}
+.nubank-type-opt:has(input:checked){border-color:var(--ink);background:var(--raised)}
+.nubank-type-opt input{accent-color:var(--ink)}
+.nubank-summary{font-size:13px;color:var(--muted);margin-bottom:8px}
+.nubank-toolbar{margin-bottom:8px}
+.nubank-table-wrap{
+  overflow:auto;max-height:min(45vh,360px);
+  border:1px solid var(--border);border-radius:12px;margin-bottom:14px
+}
+.nubank-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.nubank-table th,.nubank-table td{
+  padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);vertical-align:middle
+}
+.nubank-table th{
+  position:sticky;top:0;background:var(--surface);font-size:11px;
+  text-transform:uppercase;letter-spacing:.04em;color:var(--muted);z-index:1
+}
+.nubank-table tr:last-child td{border-bottom:none}
+.nubank-desc{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nubank-amt{font-variant-numeric:tabular-nums;white-space:nowrap}
+.nubank-amt.exp{color:var(--red)}
+.nubank-amt.inc{color:var(--green)}
+.reconcile-badge{
+  display:inline-block;padding:2px 8px;border-radius:100px;
+  font-size:10.5px;font-weight:600;white-space:nowrap
+}
+.reconcile-badge.missing{background:var(--green-bg);color:var(--green)}
+.reconcile-badge.matched{background:var(--raised);color:var(--muted)}
+.reconcile-badge.recurring{background:var(--blue-bg);color:var(--blue)}
+.reconcile-badge.ignored{background:var(--amber-bg,#FFF3D6);color:var(--amber,#8B5E00)}
+
+/* ══ BANK BALANCE ══ */
+.bank-balance-card{cursor:pointer;transition:box-shadow .2s}
+.bank-balance-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.06)}
+.bank-balance-inner{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.bank-bal-sub{font-size:12px;color:var(--muted);margin-top:6px}
+.bank-balance-actions{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.bank-edu-text{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:14px}
+.balance-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.balance-info-item{background:var(--surface);border-radius:12px;padding:12px}
+.balance-info-lbl{display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.balance-info-val{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.balance-profile-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.balance-preview-box{background:var(--surface);border-radius:12px;padding:14px;margin-bottom:12px}
+.balance-preview-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:6px 0;font-size:13.5px}
+.balance-preview-row strong{font-variant-numeric:tabular-nums;text-align:right}
+.balance-preview-row strong small{font-weight:400;color:var(--muted)}
+.balance-preview-row .inc{color:var(--green)}
+.balance-preview-row .exp{color:var(--red)}
+.balance-msgs{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.balance-msg{font-size:13px;line-height:1.5;color:var(--muted);background:var(--surface);border-radius:10px;padding:10px 12px}
+@media(max-width:640px){
+  .balance-info-grid{grid-template-columns:1fr}
+}
